@@ -40,15 +40,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
-  # Migraciones y seed: se corre bajo demanda, no queda encendido.
-  #   docker compose --profile tools run --rm tools npx prisma migrate deploy
-  #   docker compose --profile tools run --rm tools npx prisma db seed
-  tools:
+  # Migraciones y seed automáticos: corre antes de levantar app, luego termina.
+  migrate:
     build:
       context: .
       target: builder
-    profiles: ["tools"]
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -56,9 +56,11 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      SEED_DEMO: ${SEED_DEMO:-}
     depends_on:
       db:
         condition: service_healthy
+    restart: "no"
 
   db:
     image: postgres:16-alpine
