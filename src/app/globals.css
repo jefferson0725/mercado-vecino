@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/*
+ * Patrón de colores — WCAG 2.2 AA
+ *
+ * Un solo color de marca (verde) + neutros + semánticos. Reglas:
+ *  - primary (#047857, emerald-700): fondo de botones y enlaces sobre blanco.
+ *    Contraste con blanco 5.5:1 (AA texto normal). Nunca usar emerald-600 o
+ *    más claro como fondo de texto blanco (3.8:1, falla AA).
+ *  - primary-strong (#065f46, emerald-800): hover/activo y texto sobre
+ *    primary-soft (6.7:1).
+ *  - primary-soft / primary-faint: solo fondos (badges, avatares, hovers).
+ *  - Texto sobre blanco: neutral-900 (títulos), neutral-600 (secundario, 7:1),
+ *    neutral-500 como mínimo absoluto (4.7:1). Nunca neutral-400 (2.5:1).
+ *  - warn-*: avisos (negocio cerrado). danger: destructivo (7.6:1 sobre blanco).
+ *  - El color nunca es el único indicador: badges y estados llevan texto.
+ */
+@theme {
+  --color-primary: #047857;
+  --color-primary-strong: #065f46;
+  --color-primary-soft: #d1fae5;
+  --color-primary-faint: #ecfdf5;
+  --color-warn-soft: #fffbeb;
+  --color-warn-text: #92400e;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Foco visible para navegación con teclado en toda la app */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Que la barra fija de WhatsApp no tape el elemento enfocado (WCAG 2.4.11) */
+:focus {
+  scroll-margin-top: 5rem;
+  scroll-margin-bottom: 7rem;
+}
+
+/* Respetar la preferencia de movimiento reducido (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

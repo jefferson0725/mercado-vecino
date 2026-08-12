@@ -1,0 +1,9 @@
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
+
+{$STATS_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy umami:3000
+}

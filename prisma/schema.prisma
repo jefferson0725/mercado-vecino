@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SELLER
+  ADMIN
+}
+
+enum Weekday {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+enum PriceType {
+  FIJO
+  DESDE
+  COTIZAR
+}
+
+enum PaymentMethod {
+  WOMPI
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  VOIDED
+  ERROR
+}
+
+// ---------- Better Auth ----------
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(SELLER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  business      Business?
+
+  @@unique([email])
+  // Consultado en cada render público vía publicBusinessWhere (owner.emailVerified)
+  @@index([emailVerified])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ---------- Dominio ----------
+
+model Conjunto {
+  id           String     @id @default(cuid())
+  name         String
+  slug         String     @unique
+  inviteCode   String     @unique
+  imageUrl     String?
+  // Suscripción mensual en COP que pagan los negocios de este conjunto.
+  // 0 = exento: los negocios no pagan y siempre se muestran.
+  // Indexado porque publicBusinessWhere filtra por este campo en cada render público.
+  monthlyPrice     Int     @default(0)
+  // Datos de la cuenta para pago por transferencia. Si están vacíos se usan
+  // los valores por defecto definidos en src/lib/config.ts (MANUAL_PAYMENT).
+  transferMethod   String?
+  transferAccount  String?
+  transferHolder   String?
+  transferKey      String?
+  transferWhatsapp String?
+  active           Boolean @default(true)
+  createdAt  DateTime   @default(now())
+  businesses Business[]
+
+  @@index([active])
+  @@index([monthlyPrice])
+  @@map("conjunto")
+}
+
+model Business {
+  id             String    @id @default(cuid())
+  conjuntoId     String
+  conjunto       Conjunto  @relation(fields: [conjuntoId], references: [id])
+  ownerId        String    @unique
+  owner          User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String
+  description    String    @default("")
+  whatsappNumber String
+  categories     Category[]
+  // Horario en formato "HH:MM" (hora de Colombia). Si ambos están definidos,
+  // el negocio solo se muestra abierto dentro del rango (admite rangos
+  // nocturnos, p. ej. 22:00–02:00). openDays vacío = todos los días. El
+  // estado efectivo se calcula al renderizar (src/lib/schedule.ts): no hay
+  // jobs ni crons que lo muten.
+  opensAt        String?
+  closesAt       String?
+  openDays       Weekday[]  @default([])
+  isOpen         Boolean   @default(false)
+  logoUrl        String?
+  // Aprobación manual del admin: el negocio nace pendiente y no aparece en el
+  // catálogo público hasta que un admin lo apruebe. `active` es independiente:
+  // es el kill-switch para desactivar negocios ya aprobados.
+  approved       Boolean   @default(false)
+  active         Boolean   @default(true)
+  // Vigencia de la suscripción mensual. Al aprobar el negocio arranca con los
+  // días de prueba; cada pago (Wompi o manual) suma un mes. Vencida la fecha
+  // (+ días de gracia) el negocio sale del catálogo. Se evalúa al renderizar,
+  // igual que el horario: no hay jobs que la muten. null = sin vigencia.
+  paidUntil      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  products       Product[]
+  sections       ProductSection[]
+  payments       Payment[]
+
+  @@index([active, approved, paidUntil])
+  @@unique([conjuntoId, slug])
+  @@map("business")
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  businessId         String
+  business           Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  // Monto en COP, sin decimales (Wompi maneja centavos: se convierte al firmar)
+  amount             Int
+  method             PaymentMethod
+  // Los pagos Wompi nacen PENDING y el webhook los resuelve; los manuales
+  // nacen APPROVED (el admin ya recibió la plata cuando los registra).
+  status             PaymentStatus @default(PENDING)
+  // Referencia única que viaja firmada al checkout y vuelve en el webhook
+  reference          String        @unique
+  wompiTransactionId String?       @unique
+  note               String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([businessId])
+  @@map("payment")
+}
+
+model Category {
+  id         String     @id
+  name       String
+  slug       String     @unique
+  businesses Business[]
+
+  @@map("category")
+}
+
+model ProductSection {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String
+  sortOrder  Int       @default(0)
+  products   Product[]
+
+  @@index([businessId, sortOrder])
+  @@map("product_section")
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  businessId  String
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sectionId   String?
+  section     ProductSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  name        String
+  // Fijo al crear: las URLs compartidas por WhatsApp no se rompen al renombrar
+  slug        String
+  description String          @default("")
+  // Precio en pesos colombianos (COP), sin decimales
+  price       Int
+  priceType   PriceType       @default(FIJO)
+  imageUrls   String[]        @default([])
+  available   Boolean         @default(true)
+  // El admin puede moderar un producto ocultándolo de la vitrina pública sin
+  // eliminarlo. El vendedor no puede reactivarlo mientras esté moderado.
+  moderatedOff Boolean        @default(false)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([sectionId])
+  @@unique([businessId, slug])
+  @@map("product")
+}

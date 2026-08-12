@@ -1,0 +1,67 @@
+# Desarrollo local — stack completo sin Caddy, app en http://localhost:3000
+#
+# Primer uso (desde app/):
+#   docker compose -f docker-compose.dev.yml up -d db
+#   docker compose -f docker-compose.dev.yml --profile tools run --rm tools npx prisma migrate deploy
+#   docker compose -f docker-compose.dev.yml --profile tools run --rm tools npx prisma db seed
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Reconstruir después de cambios:
+#   docker compose -f docker-compose.dev.yml build app && docker compose -f docker-compose.dev.yml up -d app
+services:
+  app:
+    build:
+      context: .
+      args:
+        R2_PUBLIC_URL: ""
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:admin@db:5432/ecommerce
+      BETTER_AUTH_SECRET: dev-secret-local-change-me
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads-dev:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  tools:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgresql://postgres:admin@db:5432/ecommerce
+      BETTER_AUTH_SECRET: dev-secret-local-change-me
+      BETTER_AUTH_URL: http://localhost:3000
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+      ADMIN_NAME: Admin
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-dev:
+  uploads-dev:
