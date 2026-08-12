@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { requireBusiness } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
 import { subscriptionStatus, graceEndsAt, expiresSoon } from "@/lib/subscription";
 import { SignOutButton } from "@/components/SignOutButton";
 import { VerifyEmailBanner } from "@/components/VerifyEmailBanner";

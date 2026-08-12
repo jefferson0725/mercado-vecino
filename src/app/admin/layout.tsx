@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
 import { SignOutButton } from "@/components/SignOutButton";
 import { SITE_NAME } from "@/lib/config";
 import { AdminNav } from "./AdminNav";
