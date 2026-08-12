@@ -40,7 +40,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <form onSubmit={handleSubmit} method="post" className="mt-6 space-y-4">
       <FormField
         label="Nueva contraseña"
         name="newPassword"

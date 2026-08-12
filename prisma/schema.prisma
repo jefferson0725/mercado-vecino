@@ -59,7 +59,7 @@ model User {
   @@unique([email])
   // Consultado en cada render público vía publicBusinessWhere (owner.emailVerified)
   @@index([emailVerified])
-  @@map("user")
+  @@map("users")
 }
 
 model Session {

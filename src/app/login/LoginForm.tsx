@@ -34,7 +34,7 @@ export function LoginForm() {
 
   return (
     <AuthShell title="Inicia sesión" subtitle="Entra al panel de tu negocio.">
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <form onSubmit={handleSubmit} method="post" className="mt-6 space-y-4">
         <FormField
           label="Correo electrónico"
           name="email"
