@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/config";
 import { publicBusinessWhere } from "@/lib/subscription";
 import { PublicHeader } from "@/components/PublicHeader";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const conjuntos = await prisma.conjunto.findMany({
