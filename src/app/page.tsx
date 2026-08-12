@@ -52,7 +52,7 @@ export default async function HomePage() {
             </div>
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2">
-              {conjuntos.map((conjunto) => (
+              {conjuntos.map((conjunto, index) => (
                 <li key={conjunto.id}>
                   <Link
                     href={`/${conjunto.slug}`}
@@ -66,6 +66,7 @@ export default async function HomePage() {
                           fill
                           sizes="(min-width: 640px) 50vw, 100vw"
                           className="object-cover transition duration-300 group-hover:scale-105"
+                          priority={index === 0}
                         />
                       </div>
                     )}
