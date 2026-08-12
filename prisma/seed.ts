@@ -37,7 +37,7 @@ async function main() {
   }
 
   const admin = await ensureUser(adminEmail, adminPassword, process.env.ADMIN_NAME ?? "Admin");
-  await prisma.user.update({ where: { id: admin.id }, data: { role: "ADMIN" } });
+  await prisma.user.update({ where: { id: admin.id }, data: { role: "ADMIN", emailVerified: true } });
   console.log(`Admin listo: ${adminEmail}`);
 
   // Datos de prueba solo si SEED_DEMO=1 (en producción se crea todo desde /admin)
@@ -68,6 +68,7 @@ async function main() {
   console.log(`Conjunto listo: /${conjunto.slug} (código de invitación: ${conjunto.inviteCode})`);
 
   const seller = await ensureUser("vendedor@demo.com", "vendedor123", "María Demo");
+  await prisma.user.update({ where: { id: seller.id }, data: { emailVerified: true } });
 
   const existingBusiness = await prisma.business.findUnique({ where: { ownerId: seller.id } });
   if (!existingBusiness) {
